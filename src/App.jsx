@@ -2,12 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { resolveDoctorPhotoUrl } from "./utils/resolveDoctorPhotoUrl.js";
 
-/** Windows da `localhost` ba'zan IPv6 (::1) bo‘lib qoladi — 127.0.0.1 ishonchliroq */
-const RAW_API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5001/api";
-const API_URL = `${RAW_API_URL.replace(/\/$/, "")}/admin`;
-/** Ko'rik / navbat / printer — frontend-api (5002) */
-const KORIK_API_ROOT = (import.meta.env.VITE_KORIK_API_URL || "http://127.0.0.1:5002/api").replace(/\/$/, "");
-const PUBLIC_API_URL = RAW_API_URL.replace(/\/$/, "");
+/** Barcha so‘rovlar frontend-api (Ko‘rik). Vercel: VITE_KORIK_API_URL=https://.../api */
+const API_ROOT = (import.meta.env.VITE_KORIK_API_URL || "http://127.0.0.1:5002/api").replace(/\/$/, "");
+const API_URL = `${API_ROOT}/admin`;
 const REG_FALLBACK_GROUP_MS = 5 * 60 * 1000;
 
 const queueLabel = (ticket, section) => {
@@ -487,7 +484,7 @@ export default function App() {
   const fetchCashierPendingOrders = useCallback(async () => {
     setIsCashierPendingLoading(true);
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/cashier/pending-orders?limit=1000`, { cache: "no-store" });
+      const response = await fetch(`${API_ROOT}/cashier/pending-orders?limit=1000`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         window.alert(data.message || "Kassa buyurtmalarini olishda xatolik");
@@ -505,7 +502,7 @@ export default function App() {
   const fetchCashierAllOrders = useCallback(async () => {
     setIsCashierAllOrdersLoading(true);
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/cashier/orders-log?status=all&limit=500`, { cache: "no-store" });
+      const response = await fetch(`${API_ROOT}/cashier/orders-log?status=all&limit=500`, { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         window.alert(data.message || "Kassa buyurtmalari tarixini olishda xatolik");
@@ -524,7 +521,7 @@ export default function App() {
     setIsCashierPatientsLoading(true);
     try {
       const response = await fetch(
-        `${PUBLIC_API_URL}/cashier/patients?status=confirmed&limit=${encodeURIComponent(cashierPatientsLimit)}`,
+        `${API_ROOT}/cashier/patients?status=confirmed&limit=${encodeURIComponent(cashierPatientsLimit)}`,
         { cache: "no-store" }
       );
       const data = await response.json().catch(() => ({}));
@@ -774,7 +771,7 @@ export default function App() {
     }
     setPendingActionKey(String(group?.key || ""));
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/cashier/confirm-orders`, {
+      const response = await fetch(`${API_ROOT}/cashier/confirm-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cashierId: cashierActorId, ticketIds })
@@ -809,7 +806,7 @@ export default function App() {
     }
     setPendingActionKey(String(group?.key || ""));
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/cashier/cancel-orders`, {
+      const response = await fetch(`${API_ROOT}/cashier/cancel-orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cashierId: cashierActorId, ticketIds, reason })
@@ -968,7 +965,7 @@ export default function App() {
   }, [activePage, ordersLogLimit, fetchOrdersLog]);
 
   useEffect(() => {
-    const events = new EventSource(`${KORIK_API_ROOT}/events`);
+    const events = new EventSource(`${API_ROOT}/events`);
     const refreshByPage = () => {
       fetchConfig();
       if (activePage === PAGES.control) {
@@ -1032,7 +1029,7 @@ export default function App() {
 
   const fetchQueueSnapshot = async () => {
     try {
-      const response = await fetch(`${KORIK_API_ROOT}/queues`, { cache: "no-store" });
+      const response = await fetch(`${API_ROOT}/queues`, { cache: "no-store" });
       if (!response.ok) return;
       const data = await response.json();
       setQueueSnapshot(data);
@@ -1049,7 +1046,7 @@ export default function App() {
 
   const callNextForService = async (serviceId) => {
     try {
-      const response = await fetch(`${KORIK_API_ROOT}/queues/${serviceId}/call-next`, {
+      const response = await fetch(`${API_ROOT}/queues/${serviceId}/call-next`, {
         method: "POST"
       });
       const data = await response.json().catch(() => ({}));
@@ -1750,7 +1747,7 @@ export default function App() {
     setPrintingOrderTicketId(tid);
     try {
       const ticket = buildTicketFromOrderRow(row);
-      const response = await fetch(`${KORIK_API_ROOT}/printer/print-ticket`, {
+      const response = await fetch(`${API_ROOT}/printer/print-ticket`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticket })
@@ -1772,7 +1769,7 @@ export default function App() {
     if (!ticketId) return;
     setPrintingOrderTicketId(ticketId);
     try {
-      const response = await fetch(`${PUBLIC_API_URL}/cashier/reprint-ticket`, {
+      const response = await fetch(`${API_ROOT}/cashier/reprint-ticket`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticketId })
